@@ -1,0 +1,149 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+}
+
+
+model Account {
+  id        Int       @id @default(autoincrement())
+  name      String
+  currency  String    @default("INR")
+  timezone  String    @default("Asia/Kolkata")
+  createdAt DateTime  @default(now())
+
+  users            User[]
+  plans            Plan[]
+  subscriptions    Subscription[]
+  paymentMethods   PaymentMethod[]
+  payments         Payment[]
+  invoices         Invoice[]
+}
+
+model User {
+  id        Int       @id @default(autoincrement())
+  accountId Int
+  name      String
+  email     String   @unique
+  password  String
+  role      String   @default("customer")
+  createdAt DateTime @default(now())
+
+  account        Account        @relation(fields: [accountId], references: [id])
+  subscriptions  Subscription[]
+}
+
+model Plan {
+  id           Int       @id @default(autoincrement())
+  accountId    Int
+  code         String
+  name         String
+  billingCycle String
+  priceMinor   Int
+  currency     String   @default("INR")
+  isMetered    Boolean  @default(false)
+  active       Boolean  @default(true)
+  createdAt    DateTime @default(now())
+
+  account        Account        @relation(fields: [accountId], references: [id])
+  subscriptions  Subscription[]
+}
+
+model Subscription {
+  id                Int       @id @default(autoincrement())
+  accountId         Int
+  userId            Int
+  planId            Int
+  status            String     @default("active")
+  startDate         DateTime   @default(now())
+  trialEnd          DateTime?
+  billingAnchorDate DateTime?
+  currentPeriodStart DateTime?
+  currentPeriodEnd  DateTime?
+  cancelAtPeriodEnd Boolean    @default(false)
+  quantity          Int        @default(1)
+  createdAt         DateTime   @default(now())
+
+  account     Account     @relation(fields: [accountId], references: [id])
+  user        User        @relation(fields: [userId], references: [id])
+  plan        Plan        @relation(fields: [planId], references: [id])
+  invoices    Invoice[]
+  usageEvents UsageEvent[]
+}
+
+model Invoice {
+  id               Int       @id @default(autoincrement())
+  accountId        Int
+  subscriptionId   Int?
+  invoiceNumber    String    @unique
+  periodStart      DateTime
+  periodEnd        DateTime
+  currency         String    @default("INR")
+  status           String    @default("draft")
+  amountDueMinor   Int       @default(0)
+  amountPaidMinor  Int       @default(0)
+  createdAt        DateTime  @default(now())
+
+  account       Account        @relation(fields: [accountId], references: [id])
+  subscription  Subscription?  @relation(fields: [subscriptionId], references: [id])
+  lineItems     InvoiceLineItem[]
+  payments      Payment[]
+}
+
+model InvoiceLineItem {
+  id          Int       @id @default(autoincrement())
+  invoiceId   Int
+  type        String
+  description String
+  quantity    Int
+  amountMinor Int
+  createdAt   DateTime  @default(now())
+
+  invoice Invoice @relation(fields: [invoiceId], references: [id])
+}
+
+model PaymentMethod {
+  id         Int       @id @default(autoincrement())
+  accountId  Int
+  gateway    String
+  token      String
+  brand      String?
+  last4      String?
+  expMonth   Int?
+  expYear    Int?
+  isDefault  Boolean    @default(false)
+  createdAt  DateTime   @default(now())
+
+  account Account @relation(fields: [accountId], references: [id])
+  payments Payment[]
+}
+
+model Payment {
+  id               Int       @id @default(autoincrement())
+  accountId        Int
+  invoiceId        Int
+  paymentMethodId  Int?
+  gateway          String
+  gatewayPaymentId String?
+  amountMinor      Int
+  status           String    @default("pending")
+  attemptNumber    Int        @default(1)
+  createdAt        DateTime   @default(now())
+
+  account        Account        @relation(fields: [accountId], references: [id])
+  invoice        Invoice        @relation(fields: [invoiceId], references: [id])
+  paymentMethod  PaymentMethod? @relation(fields: [paymentMethodId], references: [id])
+}
+
+model UsageEvent {
+  id              Int       @id @default(autoincrement())
+  subscriptionId  Int
+  metric          String
+  quantity        Int
+  eventTimestamp  DateTime
+  createdAt       DateTime @default(now())
+
+  subscription Subscription @relation(fields: [subscriptionId], references: [id])
+}
