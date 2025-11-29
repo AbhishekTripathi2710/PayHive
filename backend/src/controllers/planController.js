@@ -3,7 +3,7 @@ const planService = require("../services/planService");
 module.exports = {
   create: async (req, res) => {
     try {
-        console.log("USER FROM AUTH:", req.user);
+        // console.log("USER FROM AUTH:", req.user);
       const plan = await planService.createPlan(req.body, req.user);
       res.json(plan);
     } catch (err) {
