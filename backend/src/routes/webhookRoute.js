@@ -11,16 +11,16 @@ router.post("/", express.raw({ type: "application/json" }), async (req, res) => 
   try {
     event = stripe.webhooks.constructEvent(req.body, sig, webhookSecret);
   } catch (err) {
+    console.log(" WEBHOOK SIGNATURE ERROR:", err.message);
     return res.status(400).send(`Webhook Error: ${err.message}`);
   }
 
-  try {
-    await webhookService.handleEvent(event);
-    res.json({ received: true });
-  } catch (err) {
-    console.error("Webhook handler error:", err);
-    res.status(500).send();
-  }
+  console.log(" Webhook event received:", event.type);
+
+  await webhookService.handleEvent(event);
+
+  res.json({ received: true });
 });
+
 
 module.exports = router;

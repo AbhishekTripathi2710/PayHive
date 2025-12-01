@@ -7,8 +7,6 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-
-
 model Account {
   id        Int       @id @default(autoincrement())
   name      String
@@ -38,36 +36,41 @@ model User {
 }
 
 model Plan {
-  id           Int       @id @default(autoincrement())
-  accountId    Int
-  code         String
-  name         String
-  billingCycle String
-  priceMinor   Int
-  currency     String   @default("INR")
-  isMetered    Boolean  @default(false)
-  active       Boolean  @default(true)
-  createdAt    DateTime @default(now())
+  id              Int       @id @default(autoincrement())
+  accountId       Int
+  code            String
+  name            String
+  description     String?              // optional plan description
+  billingCycle    String               // e.g. "MONTHLY" / "YEARLY"
+  priceMinor      Int                  // price in smallest currency unit (paise/cents)
+  currency        String   @default("INR")
+  isMetered       Boolean  @default(false)
+  active          Boolean  @default(true)
+  createdAt       DateTime @default(now())
+
+  // Stripe mapping fields
+  stripeProductId String?   // e.g. prod_...
+  stripePriceId   String?   // e.g. price_...
 
   account        Account        @relation(fields: [accountId], references: [id])
   subscriptions  Subscription[]
 }
 
 model Subscription {
-  id                Int       @id @default(autoincrement())
-  accountId         Int
-  userId            Int
-  planId            Int
-  stripeId          String?
-  status            String     @default("active")
-  startDate         DateTime   @default(now())
-  trialEnd          DateTime?
-  billingAnchorDate DateTime?
+  id                 Int       @id @default(autoincrement())
+  accountId          Int
+  userId             Int
+  planId             Int
+  stripeId           String?    // Stripe subscription id (sub_...)
+  status             String     @default("active")
+  startDate          DateTime   @default(now())
+  trialEnd           DateTime?
+  billingAnchorDate  DateTime?
   currentPeriodStart DateTime?
-  currentPeriodEnd  DateTime?
-  cancelAtPeriodEnd Boolean    @default(false)
-  quantity          Int        @default(1)
-  createdAt         DateTime   @default(now())
+  currentPeriodEnd   DateTime?
+  cancelAtPeriodEnd  Boolean    @default(false)
+  quantity           Int        @default(1)
+  createdAt          DateTime   @default(now())
 
   account     Account     @relation(fields: [accountId], references: [id])
   user        User        @relation(fields: [userId], references: [id])
@@ -80,7 +83,7 @@ model Invoice {
   id               Int       @id @default(autoincrement())
   accountId        Int
   subscriptionId   Int?
-  gatewayInvoiceId String?
+  gatewayInvoiceId String?   @unique // Stripe invoice id (in_...)
   invoiceNumber    String    @unique
   periodStart      DateTime
   periodEnd        DateTime
@@ -111,14 +114,14 @@ model InvoiceLineItem {
 model PaymentMethod {
   id         Int       @id @default(autoincrement())
   accountId  Int
-  gateway    String
-  token      String
+  gateway    String    // e.g. "stripe"
+  token      String    // generic token: stripe customer id or payment method id depending on usage
   brand      String?
   last4      String?
   expMonth   Int?
   expYear    Int?
-  isDefault  Boolean    @default(false)
-  createdAt  DateTime   @default(now())
+  isDefault  Boolean   @default(false)
+  createdAt  DateTime  @default(now())
 
   account Account @relation(fields: [accountId], references: [id])
   payments Payment[]
@@ -130,11 +133,11 @@ model Payment {
   invoiceId        Int
   paymentMethodId  Int?
   gateway          String
-  gatewayPaymentId String?
+  gatewayPaymentId String?   // e.g. stripe charge / payment_intent id
   amountMinor      Int
   status           String    @default("pending")
-  attemptNumber    Int        @default(1)
-  createdAt        DateTime   @default(now())
+  attemptNumber    Int       @default(1)
+  createdAt        DateTime  @default(now())
 
   account        Account        @relation(fields: [accountId], references: [id])
   invoice        Invoice        @relation(fields: [invoiceId], references: [id])
@@ -147,7 +150,7 @@ model UsageEvent {
   metric          String
   quantity        Int
   eventTimestamp  DateTime
-  createdAt       DateTime @default(now())
+  createdAt       DateTime  @default(now())
 
   subscription Subscription @relation(fields: [subscriptionId], references: [id])
 }

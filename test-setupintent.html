@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <script src="https://js.stripe.com/v3/"></script>
+</head>
+<body>
+  <input id="clientSecret" placeholder="Enter SetupIntent client_secret" />
+  <button id="submit">Submit Card</button>
+
+  <div id="card-element"></div>
+  <div id="result"></div>
+
+  <script>
+    const stripe = Stripe("pk_test_51SYlZNEQoNjfSSrINvya3eyC3I1mJE74xzVExUJsnni2D2SvxAxAvY5ItNEKh4lRl35virNDDeb4g2HmAZ8tnIrf00zNOMfqBt"); // Use your test publishable key
+
+    const elements = stripe.elements();
+    const card = elements.create("card");
+    card.mount("#card-element");
+
+    document.getElementById("submit").onclick = async () => {
+      const cs = document.getElementById("clientSecret").value;
+      const { setupIntent, error } = await stripe.confirmCardSetup(cs, {
+        payment_method: { card: card }
+      });
+
+      document.getElementById("result").innerText =
+        error ? error.message : JSON.stringify(setupIntent, null, 2);
+    };
+  </script>
+</body>
+</html>
