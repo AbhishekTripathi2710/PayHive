@@ -74,4 +74,43 @@ router.post("/:id/resume",auth, async (req,res) => {
     }
 })
 
+router.post("/:id/usage",auth, async (req,res) => {
+    try{
+        const {id} = req.params;
+        const {metric, quantity} = req.bodyl
+        if (!metric || typeof quantity !== "number" || quantity <= 0) {
+            return res.status(400).json({ message: "metric and positive quantity required" });
+        }
+
+        const result = await subscriptionService.recordUsage({
+            subscriptionId: Number(id),
+            metric,
+            quantity,
+            user: req.user,
+        });
+
+        res.json({success: true, data: result});
+
+    }catch (err) {
+        console.error("recordUsage error:", err);
+        res.status(err.statusCode || 400).json({ message: err.message });
+    }
+})
+
+router.get("/:id/usage", auth, async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const events = await subscriptionService.getUsageEvents({
+      subscriptionId: Number(id),
+      user: req.user,
+    });
+
+    res.json({ success: true, data: events });
+  } catch (err) {
+    console.error("getUsageEvents error:", err);
+    res.status(err.statusCode || 400).json({ message: err.message });
+  }
+});
+
 module.exports = router;

@@ -199,4 +199,67 @@ module.exports = {
 
     return {message: "Subscription resumed", stripe: stripeSub, db: updated};
   },
+
+  recordUsage: async ({subscriptionId, metric, quantity, user}) => {
+    const sub = await prisma.subscription.findUnique({
+      where: {id: subscriptionId},
+      include: {plan: true},
+    });
+
+    if(!sub) throw new Error("Subscription not found");
+
+    if(sub.accountId !== user.accountId) throw new Error("Forbidden");
+
+    if(!sub.plan.isMetered) throw new Error("Plan is not meterd");
+
+    if(!sub.stripeId) throw new Error("Subscription is not linked to stripe");
+
+    const stripeSub = await stripe.subscriptions.retrieve(prisma.subscription.stripeId);
+
+    if(!stripeSub.items || !stripeSub.items.data.lenght) throw new Error("No subscription items found on Stripe subcription");
+
+    const subscriptionItemId = stripeSub.items.data[0].id;
+
+    const timestamp = Math.floor(Date.now() / 1000);
+
+    const stripeUsageRecord = await stripe.subscriptionItems.createUsageRecord(
+      subscriptionItemId,
+      {
+        quantity,
+        action: "increment",
+        timestamp,
+      }
+    );
+
+    const usageEvent = await prisma.usageEvent.create({
+      data: {
+        subscriptionId,
+        metric,
+        quantity,
+        eventTimestamp: new Date(),
+      },
+    });
+
+    return{
+      stripeUsageRecord,
+      usageEvent,
+    };
+  },
+
+  getUsageEvents: async ({subscriptionId, user}) => {
+    const subscription = await prisma.subscription.findUnique({
+      where : {id: subscriptionId},
+    });
+
+    if(!subscription) throw new Error("Subscription not found");
+
+    if(subscription.accountId !== user.accountId) throw new Error("Forbidden");
+
+    const events = await prisma.usageEvent.findMany({
+      where: {subscriptionId},
+      orderBy: {eventTimestamp: "desc"},
+    });
+
+    return events;
+  }
 };
