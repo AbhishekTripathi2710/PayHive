@@ -8,6 +8,7 @@ const customerRoutes = require("./routes/customerRoute");
 const paymentRoutes = require("./routes/paymentRoute");
 const subscriptionRoutes = require("./routes/subscriptionRoute");
 const webhookRoute = require("./routes/webhookRoute");
+const walletRoute = require("./routes/walletRoutes");
 
 const app = express();
 app.use(cors());
@@ -18,6 +19,7 @@ app.use("/customer",customerRoutes);
 app.use("/payment",paymentRoutes);
 app.use("/subscription",subscriptionRoutes);
 app.use("/webhook/stripe",webhookRoute);
+app.use("/wallet", walletRoute);
 app.use(express.json());
 
 app.get("/",(req,res) => res.send("Billing API running..."));
