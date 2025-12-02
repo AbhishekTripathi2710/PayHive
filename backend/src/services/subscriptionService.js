@@ -11,7 +11,7 @@ async function ensureStripePrice(plan) {
 
   const price = await stripe.prices.create({
     product: product.id,
-    unit_amount: plan.priceMinor, 
+    unit_amount: plan.priceMinor,
     currency: plan.currency.toLowerCase(),
     recurring: { interval: plan.billingCycle.toLowerCase() === "monthly" ? "month" : "year" },
   });
@@ -97,5 +97,67 @@ module.exports = {
     }
 
     return { subscription, dbSubscription: created };
-  }
+  },
+
+  cancelSubscription: async ({ subscriptionId, immediate, user }) => {
+    const sub = await prisma.subscription.findUnique({
+      where: { id: Number(subscriptionId) },
+    });
+    if (!sub) throw new Error("Subscription not found");
+
+    const stripeSub = await stripe.subscriptions.update(sub.stripeId, {
+      cancel_at_period_end: !immediate,
+    });
+
+    await prisma.subscription.update({
+      where: { id: sub.id },
+      data: {
+        status: immediate ? "canceled" : "cancel_at_period_end",
+        cancelAtPeriodEnd: !immediate,
+      },
+    });
+
+    return { message: "Subscription canceled", stripe: stripeSub };
+  },
+
+  changePlan: async ({ subscriptionId, newPlanId, user }) => {
+    const sub = await prisma.subscription.findUnique({
+      where: { id: Number(subscriptionId) },
+    });
+    if (!sub) throw new Error("Subscription not found");
+
+    const newPlan = await prisma.plan.findUnique({
+      where: { id: Number(newPlanId) },
+    });
+    if (!newPlan) throw new Error("New plan not found");
+
+    const newPriceId = await ensureStripePrice(newPlan);
+
+    const stripeSub = await stripe.subscriptions.retrieve(sub.stripeId);
+
+    const itemId = stripeSub.items.data[0].id;
+
+    const updated = await stripe.subscriptions.update(sub.stripeId, {
+      items: [
+        {
+          id: itemId,
+          price: newPriceId,
+        },
+      ],
+      proration_behavior: "create_prorations",
+    });
+
+    await prisma.subscription.update({
+      where: { id: sub.id },
+      data: {
+        planId: newPlan.id,
+        currentPeriodStart: new Date(updated.current_period_start * 1000),
+        currentPeriodEnd: new Date(updated.current_period_end * 1000),
+        status: updated.status,
+      },
+    });
+
+    return { message: "Plan updated", stripe: updated };
+  },
+
 };
