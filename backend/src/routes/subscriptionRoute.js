@@ -47,4 +47,31 @@ router.post("/:id/change-plan", auth, async (req,res) => {
     }
 })
 
+router.post("/:id/pause",auth, async (req,res) => {
+    try{
+        const {id} = req.params;
+        const result = await subscriptionService.pauseSubscription({
+            subscriptionId: id,
+            user: req.user,
+        });
+        res.json(result);
+    }catch(err){
+        res.status(400).json({message: err.message});
+    }
+})
+
+router.post("/:id/resume",auth, async (req,res) => {
+    try{
+        const {id} = req.params;
+        const result = await subscriptionService.resumeSubscription({
+            subscriptionId:id,
+            user: req.user,
+        });
+
+        res.json(result);
+    }catch(err){
+        res.status(400).json({message: err.message})
+    }
+})
+
 module.exports = router;

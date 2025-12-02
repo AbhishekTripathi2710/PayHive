@@ -20,6 +20,8 @@ model Account {
   paymentMethods   PaymentMethod[]
   payments         Payment[]
   invoices         Invoice[]
+
+  wallet            Wallet[]
 }
 
 model User {
@@ -61,8 +63,8 @@ model Subscription {
   accountId          Int
   userId             Int
   planId             Int
-  stripeId           String?    // Stripe subscription id (sub_...)
-  status             String     @default("active")
+  stripeId           String?
+  status             String     @default("active") // active | trialing | paused | canceled | past_due | cancel_at_period_end
   startDate          DateTime   @default(now())
   trialEnd           DateTime?
   billingAnchorDate  DateTime?
@@ -78,6 +80,29 @@ model Subscription {
   invoices    Invoice[]
   usageEvents UsageEvent[]
 }
+
+model Wallet {
+  id           Int       @id @default(autoincrement())
+  accountId    Int
+  balanceMinor Int       @default(0)  // in paise
+  createdAt    DateTime  @default(now())
+
+  account      Account   @relation(fields: [accountId], references: [id])
+  transactions WalletTransaction[]
+}
+
+model WalletTransaction {
+  id           Int       @id @default(autoincrement())
+  walletId     Int
+  amountMinor  Int       // +ve for credit, -ve for debit
+  type         String    // CREDIT | DEBIT | ADJUSTMENT
+  description  String?
+  reference    String?   // invoice id, payment id, etc
+  createdAt    DateTime  @default(now())
+
+  wallet       Wallet    @relation(fields: [walletId], references: [id])
+}
+
 
 model Invoice {
   id               Int       @id @default(autoincrement())

@@ -160,4 +160,43 @@ module.exports = {
     return { message: "Plan updated", stripe: updated };
   },
 
+  pauseSubscription: async ({subscriptionId, user}) => {
+    const sub = await prisma.subscription.findUnique({
+      where: {id : Number(subscriptionId)},
+    });
+    if(!sub) throw new Error("Subscription not found");
+    if(sub.accountId !== user.accountId) throw new Error("Forbidden");
+
+    const stripeSub = await stripe.subscriptions.update(sub.stripeId, {
+      pause_collection: {
+        behavior: "mark_uncollectible",
+      },
+    });
+
+    const updated = await prisma.subscription.update({
+      where: {id: sub.id},
+      data: {status: "paused"},
+    });
+
+    return {message: "Subscription paused", stripe: stripeSub, db: updated};
+  },
+
+  resumeSubscription: async ({subscriptionId, user})=> {
+    const sub = await prisma.subscription.findUnique({
+      where: {id: Number(subscriptionId)}
+    });
+    if(!sub) throw new Error("Subscription not found");
+    if(sub.accountId !== user.accountId) throw new Error("Forbidden");
+
+    const stripeSub = await stripe.subscriptions.update(sub.stripeId, {
+      pause_collection: "",
+    });
+
+    const updated = await prisma.subscription.update({
+      where: {id: sub.id},
+      data: {status: stripeSub.status || "active"},
+    });
+
+    return {message: "Subscription resumed", stripe: stripeSub, db: updated};
+  },
 };
