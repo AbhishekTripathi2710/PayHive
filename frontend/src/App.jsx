@@ -11,8 +11,9 @@ import Invoices from './pages/Invoices'
 import InvoiceDetail from './pages/InvoiceDetail'
 import Payments from './pages/Payment'
 import SubscriptionDetail from './pages/SubscriptionDetail'
+import PaymentMethods from './pages/PaymentMethods'
 
-function Protected({children}){
+function Protected({ children }) {
   const token = localStorage.getItem("token");
   return token ? children : <Navigate to="/login"></Navigate>
 }
@@ -51,6 +52,16 @@ function App() {
         <Route path='/payments' element={
           <Protected><Payments></Payments></Protected>
         }></Route>
+
+        <Route
+          path='/payment-methods'
+          element={
+            <Protected>
+              <PaymentMethods />
+            </Protected>
+          }
+        />
+
 
         <Route path="*" element={<Navigate to="/dashboard" replace />} />
       </Routes>
