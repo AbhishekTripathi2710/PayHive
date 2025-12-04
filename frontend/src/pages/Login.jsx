@@ -144,12 +144,15 @@ export default function Login() {
                                 </div>
                             </div>
 
-                            <button className="flex items-center justify-center gap-3 rounded-lg border border-gray-300 
-                                 bg-white py-3 text-sm text-slate-700 hover:bg-gray-100">
-                                <svg className="h-5 w-5" viewBox="0 0 24 24">
-                                    <path fill="#4285F4" d="M22.56 12.25C22.56 11.45 22.49..." />
-                                </svg>
-                                Continue with Google
+                            <button
+                              type="button"
+                              className="flex items-center justify-center gap-3 rounded-lg border border-gray-300 
+                                 bg-white py-3 text-sm text-slate-700 hover:bg-gray-100 opacity-60 cursor-not-allowed"
+                            >
+                              <span className="material-symbols-outlined text-base text-gray-500">
+                                g_translate
+                              </span>
+                              Continue with Google (coming soon)
                             </button>
                         </div>
 

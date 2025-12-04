@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import API from "../api/axios";
 
 export default function Register() {
   const navigate = useNavigate();
@@ -13,7 +14,7 @@ export default function Register() {
     if (password !== confirm) return alert("Passwords do not match");
 
     try {
-      await API.post("/auth/register", { username, email, password });
+      await API.post("/auth/register", { name: username, email, password });
       alert("Account created successfully!");
       navigate("/login");
     } catch (err) {

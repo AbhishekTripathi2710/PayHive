@@ -1,153 +1,237 @@
+import { useEffect, useState } from "react";
+import { useParams } from "react-router-dom";
 import Sidebar from "../components/Sidebar";
+import { getInvoiceDetail } from "../api/invoices";
+
+function formatMoneyFromMinor(minor, currency = "INR") {
+  if (minor == null) return "-";
+  const major = minor / 100;
+  return major.toLocaleString("en-IN", {
+    style: "currency",
+    currency,
+    maximumFractionDigits: 2,
+  });
+}
 
 export default function InvoiceDetail() {
+  const { invoiceId } = useParams();
+  const [invoice, setInvoice] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    const fetchInvoice = async () => {
+      try {
+        const res = await getInvoiceDetail(invoiceId);
+        setInvoice(res.data.data);
+      } catch (err) {
+        setError("Failed to load invoice.");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchInvoice();
+  }, [invoiceId]);
+
+  const currency = invoice?.currency || "INR";
+  const total = invoice?.amountDueMinor ?? invoice?.amountPaidMinor ?? 0;
+
   return (
-    <div className="relative flex min-h-screen w-full">
-      {/* Sidebar */}
+    <div className="relative flex min-h-screen w-full bg-[#F3F4F8]">
       <Sidebar />
 
-      {/* Main Content */}
       <main className="flex-1 px-8 py-8">
-        <div className="max-w-7xl mx-auto">
-
-          {/* Top Section */}
+        <div className="max-w-6xl mx-auto">
           <div className="flex flex-wrap justify-between items-center mb-8">
             <div>
-              <h1 className="text-gray-900 dark:text-white text-4xl font-black tracking-tight">
+              <h1 className="text-slate-900 text-4xl font-black tracking-tight">
                 Invoice Details
               </h1>
-              <p className="text-gray-500 dark:text-gray-400">Invoice #INV-2023-0012</p>
+              <p className="text-slate-500">
+                {invoice
+                  ? `Invoice #${invoice.invoiceNumber}`
+                  : "Loading invoice..."}
+              </p>
+
+              {error && (
+                <p className="mt-2 text-sm text-red-500">
+                  {error}
+                </p>
+              )}
             </div>
 
             <div className="flex gap-3">
-              <button className="flex items-center gap-2 px-4 py-2 border rounded-lg shadow-sm bg-white dark:bg-gray-900 text-gray-700 dark:text-gray-300">
+              <button className="flex items-center gap-2 px-4 py-2 border rounded-full shadow-sm bg-white text-gray-700 opacity-60 cursor-not-allowed text-sm">
                 <span className="material-symbols-outlined text-sm">download</span>
                 Download PDF
               </button>
-              <button className="flex items-center gap-2 px-4 py-2 bg-primary text-white rounded-lg shadow hover:bg-primary/90">
+              <button className="flex items-center gap-2 px-4 py-2 bg-primary text-white rounded-full shadow opacity-60 cursor-not-allowed text-sm">
                 <span className="material-symbols-outlined text-sm">print</span>
                 Print
               </button>
             </div>
           </div>
 
-          {/* Invoice Header Card */}
-          <div className="rounded-xl bg-white dark:bg-gray-900 shadow border border-gray-200 dark:border-gray-800 p-6 mb-8">
+          <div className="rounded-card bg-white shadow-card border border-gray-200 p-6 mb-8">
             <div className="flex justify-between flex-wrap gap-6">
-              
-              {/* Company Info */}
               <div>
-                <h2 className="text-xl font-bold dark:text-white">PayHive Technologies</h2>
-                <p className="text-gray-600 dark:text-gray-400">
-                  Sector 62, Noida, Uttar Pradesh  
-                  <br /> GSTIN: 29ABCDE1234F1Z5
+                <h2 className="text-xl font-bold text-slate-900">
+                  {invoice?.subscription?.plan?.name || "PayHive Subscription"}
+                </h2>
+                <p className="text-gray-600">
+                  Invoice for account #{invoice?.accountId}
                 </p>
               </div>
 
-              {/* Invoice Summary */}
               <div className="text-right">
-                <p className="text-gray-500 dark:text-gray-400 text-sm">Invoice Number</p>
-                <p className="text-lg font-bold dark:text-white">INV-2023-0012</p>
+                <p className="text-gray-500 text-sm">
+                  Invoice Number
+                </p>
+                <p className="text-lg font-bold text-slate-900">
+                  {invoice?.invoiceNumber || "—"}
+                </p>
 
-                <p className="text-gray-500 dark:text-gray-400 text-sm mt-2">Issued On</p>
-                <p className="text-lg font-medium dark:text-gray-200">June 15, 2024</p>
+                <p className="text-gray-500 text-sm mt-2">
+                  Issued On
+                </p>
+                <p className="text-lg font-medium text-slate-800">
+                  {invoice?.periodStart
+                    ? new Date(invoice.periodStart).toLocaleDateString()
+                    : "—"}
+                </p>
 
-                <p className="text-gray-500 dark:text-gray-400 text-sm mt-2">Due Date</p>
-                <p className="text-lg font-medium dark:text-gray-200">July 1, 2024</p>
+                <p className="text-gray-500 text-sm mt-2">
+                  Period End
+                </p>
+                <p className="text-lg font-medium text-slate-800">
+                  {invoice?.periodEnd
+                    ? new Date(invoice.periodEnd).toLocaleDateString()
+                    : "—"}
+                </p>
               </div>
             </div>
           </div>
 
-          {/* BILL TO SECTION */}
-          <div className="rounded-xl bg-white dark:bg-gray-900 shadow border border-gray-200 dark:border-gray-800 p-6 mb-8">
-            <h3 className="text-lg font-bold mb-4 dark:text-white">Bill To</h3>
+          <div className="rounded-card bg-white shadow-card border border-gray-200 p-6 mb-8">
+            <h3 className="text-lg font-bold mb-4 text-slate-900">Bill To</h3>
 
-            <p className="text-gray-900 dark:text-gray-200 font-medium text-lg">
-              Liam Johnson
+            <p className="text-gray-900 font-medium text-lg">
+              {invoice?.subscription?.user?.name || "Subscription Customer"}
             </p>
-            <p className="text-gray-600 dark:text-gray-400">
-              liam.johnson@email.com
-            </p>
-            <p className="text-gray-600 dark:text-gray-400">
-              Bangalore, Karnataka — India
+            <p className="text-gray-600">
+              {invoice?.subscription?.user?.email || "Email not available"}
             </p>
           </div>
 
-          {/* Line Items Table */}
-          <div className="rounded-xl bg-white dark:bg-gray-900 shadow border border-gray-200 dark:border-gray-800 p-6 mb-10">
-            <h3 className="text-lg font-bold mb-4 dark:text-white">Invoice Items</h3>
+          <div className="rounded-card bg-white shadow-card border border-gray-200 p-6 mb-10">
+            <h3 className="text-lg font-bold mb-4 text-slate-900">
+              Invoice Items
+            </h3>
 
-            <div className="overflow-x-auto rounded-lg border border-gray-200 dark:border-gray-800">
+            <div className="overflow-x-auto rounded-lg border border-gray-200">
               <table className="w-full">
-                <thead className="bg-gray-50 dark:bg-gray-800/50">
+                <thead className="bg-gray-50">
                   <tr>
-                    <th className="px-6 py-4 text-left text-xs font-medium uppercase text-gray-500 dark:text-gray-400">Description</th>
-                    <th className="px-6 py-4 text-left text-xs font-medium uppercase text-gray-500 dark:text-gray-400">Quantity</th>
-                    <th className="px-6 py-4 text-left text-xs font-medium uppercase text-gray-500 dark:text-gray-400">Unit Price</th>
-                    <th className="px-6 py-4 text-right text-xs font-medium uppercase text-gray-500 dark:text-gray-400">Amount</th>
+                    <th className="px-6 py-4 text-left text-xs font-medium uppercase text-gray-500">
+                      Description
+                    </th>
+                    <th className="px-6 py-4 text-left text-xs font-medium uppercase text-gray-500">
+                      Quantity
+                    </th>
+                    <th className="px-6 py-4 text-left text-xs font-medium uppercase text-gray-500">
+                      Unit Price
+                    </th>
+                    <th className="px-6 py-4 text-right text-xs font-medium uppercase text-gray-500">
+                      Amount
+                    </th>
                   </tr>
                 </thead>
 
-                <tbody className="divide-y divide-gray-200 dark:divide-gray-800">
-                  <tr>
-                    <td className="px-6 py-4 text-gray-900 dark:text-gray-200 font-medium">
-                      Pro Tier Subscription — Monthly Billing
-                    </td>
-                    <td className="px-6 py-4 text-gray-700 dark:text-gray-400">1</td>
-                    <td className="px-6 py-4 text-gray-700 dark:text-gray-400">$1,250.00</td>
-                    <td className="px-6 py-4 text-right text-gray-900 dark:text-gray-200 font-medium">
-                      $1,250.00
-                    </td>
-                  </tr>
-
-                  <tr>
-                    <td className="px-6 py-4 text-gray-900 dark:text-gray-200 font-medium">
-                      Additional SMS Usage
-                    </td>
-                    <td className="px-6 py-4 text-gray-700 dark:text-gray-400">420</td>
-                    <td className="px-6 py-4 text-gray-700 dark:text-gray-400">$0.05</td>
-                    <td className="px-6 py-4 text-right text-gray-900 dark:text-gray-200 font-medium">
-                      $21.00
-                    </td>
-                  </tr>
+                <tbody className="divide-y divide-gray-200">
+                  {invoice?.lineItems?.length ? (
+                    invoice.lineItems.map((item) => (
+                      <tr key={item.id}>
+                        <td className="px-6 py-4 text-gray-900 font-medium">
+                          {item.description}
+                        </td>
+                        <td className="px-6 py-4 text-gray-700">
+                          {item.quantity}
+                        </td>
+                        <td className="px-6 py-4 text-gray-700">
+                          {formatMoneyFromMinor(item.amountMinor, currency)}
+                        </td>
+                        <td className="px-6 py-4 text-right text-gray-900 font-medium">
+                          {formatMoneyFromMinor(
+                            item.amountMinor * item.quantity,
+                            currency
+                          )}
+                        </td>
+                      </tr>
+                    ))
+                  ) : (
+                    <tr>
+                      <td
+                        colSpan={4}
+                        className="px-6 py-6 text-center text-sm text-slate-500"
+                      >
+                        No line items found for this invoice.
+                      </td>
+                    </tr>
+                  )}
                 </tbody>
               </table>
             </div>
 
-            {/* Totals */}
             <div className="flex justify-end mt-6">
               <div className="w-full sm:w-80 space-y-2">
                 <div className="flex justify-between">
-                  <span className="text-gray-600 dark:text-gray-400">Subtotal</span>
-                  <span className="font-medium text-gray-900 dark:text-gray-200">$1,271.00</span>
+                  <span className="text-gray-600">
+                    Amount Due
+                  </span>
+                  <span className="font-medium text-gray-900">
+                    {formatMoneyFromMinor(total, currency)}
+                  </span>
                 </div>
 
-                <div className="flex justify-between">
-                  <span className="text-gray-600 dark:text-gray-400">Tax (18%)</span>
-                  <span className="font-medium text-gray-900 dark:text-gray-200">$228.78</span>
-                </div>
-
-                <div className="flex justify-between pt-2 border-t border-gray-300 dark:border-gray-700">
-                  <span className="text-gray-900 dark:text-white font-semibold">Total</span>
-                  <span className="text-gray-900 dark:text-white font-bold">$1,499.78</span>
+                <div className="flex justify-between pt-2 border-t border-gray-300">
+                  <span className="text-gray-900 font-semibold">
+                    Total
+                  </span>
+                  <span className="text-gray-900 font-bold">
+                    {formatMoneyFromMinor(total, currency)}
+                  </span>
                 </div>
               </div>
             </div>
           </div>
 
-          {/* Payment Status */}
-          <div className="rounded-xl bg-white dark:bg-gray-900 shadow border border-gray-200 dark:border-gray-800 p-6">
-            <h3 className="text-lg font-bold mb-4 dark:text-white">Payment Status</h3>
+          <div className="rounded-card bg-white shadow-card border border-gray-200 p-6">
+            <h3 className="text-lg font-bold mb-4 text-slate-900">
+              Payment Status
+            </h3>
 
-            <span className="inline-flex px-4 py-2 rounded-full bg-green-100 text-green-700 dark:bg-green-500/20 dark:text-green-400 text-sm font-medium">
-              Payment Succeeded
-            </span>
+            {invoice?.payments?.length ? (
+              <>
+                <span className="inline-flex px-4 py-2 rounded-full bg-green-100 text-green-700 text-sm font-medium">
+                  {invoice.payments[0].status}
+                </span>
 
-            <p className="text-gray-600 dark:text-gray-400 mt-3">
-              Paid on <span className="font-medium text-gray-900 dark:text-gray-200">June 16, 2024</span>
-            </p>
+                <p className="text-gray-600 mt-3">
+                  Paid on{" "}
+                  <span className="font-medium text-gray-900">
+                    {new Date(
+                      invoice.payments[0].createdAt
+                    ).toLocaleDateString()}
+                  </span>
+                </p>
+              </>
+            ) : (
+              <p className="text-sm text-slate-500">
+                No payment information available for this invoice yet.
+              </p>
+            )}
           </div>
-
         </div>
       </main>
     </div>
