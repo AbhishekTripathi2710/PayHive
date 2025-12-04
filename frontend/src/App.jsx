@@ -10,6 +10,7 @@ import Subscriptions from './pages/Subscription'
 import Invoices from './pages/Invoices'
 import InvoiceDetail from './pages/InvoiceDetail'
 import Payments from './pages/Payment'
+import SubscriptionDetail from './pages/SubscriptionDetail'
 
 function Protected({children}){
   const token = localStorage.getItem("token");
@@ -33,6 +34,10 @@ function App() {
 
         <Route path='/subscriptions' element={
           <Protected><Subscriptions></Subscriptions></Protected>
+        }></Route>
+
+        <Route path='/subscriptions/:id' element={
+          <Protected><SubscriptionDetail></SubscriptionDetail></Protected>
         }></Route>
 
         <Route path='/invoices' element={

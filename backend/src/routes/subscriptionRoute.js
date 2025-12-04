@@ -1,4 +1,5 @@
 const express = require("express");
+const prisma = require("../prisma/client")
 const router = express.Router();
 const auth = require("../middlewares/authMiddleware");
 const subscriptionService = require("../services/subscriptionService");
@@ -96,6 +97,35 @@ router.post("/:id/usage",auth, async (req,res) => {
         res.status(err.statusCode || 400).json({ message: err.message });
     }
 })
+
+router.get("/:id", auth, async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const subscription = await prisma.subscription.findUnique({
+      where: { id: Number(id) },
+      include: {
+        plan: true,
+        user: true,
+      },
+    });
+
+    if (!subscription) {
+      return res.status(404).json({ message: "Subscription not found" });
+    }
+
+    if (subscription.accountId !== req.user.accountId) {
+      return res.status(403).json({ message: "Forbidden" });
+    }
+
+    res.json({ success: true, data: subscription });
+
+  } catch (err) {
+    console.error("GET /subscription/:id error", err);
+    res.status(500).json({ message: "Server error" });
+  }
+});
+
 
 router.get("/:id/usage", auth, async (req, res) => {
   try {
