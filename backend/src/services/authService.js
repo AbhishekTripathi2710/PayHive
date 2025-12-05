@@ -14,6 +14,7 @@ module.exports = {
                 name: `${name} 's Account`
             }
         });
+        
 
         const user = await prisma.user.create({
             data: {

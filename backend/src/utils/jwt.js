@@ -8,6 +8,7 @@ const generateToken = (user) => {
             role: user.role,
             name: user.name,
             email: user.email,
+            stripeCustomer
         },
         process.env.JWT_SECRET,
         {expiresIn: "7d"}

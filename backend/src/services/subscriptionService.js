@@ -29,14 +29,25 @@ module.exports = {
     const plan = await prisma.plan.findUnique({ where: { id: planId } });
     if (!plan) throw new Error("Plan not found");
 
-    const pm = await prisma.paymentMethod.findFirst({
-      where: { accountId: user.accountId, gateway: "stripe" }
+    const dbUser = await prisma.user.findUnique({
+      where: { id: user.userId }
     });
-    if (!pm) throw new Error("Stripe customer not found for this account. Create Stripe customer first.");
+    
+    if (!dbUser) throw new Error("User not found");
+    
+    if (!dbUser.stripeCustomerId) {
+      throw new Error("Stripe customer not found for this account. Please add a payment method first to create a Stripe customer.");
+    }
 
-    const stripeCustomerId = pm.token;
+    const stripeCustomerId = dbUser.stripeCustomerId;
 
-    await stripe.paymentMethods.attach(paymentMethodId, { customer: stripeCustomerId });
+    try {
+      await stripe.paymentMethods.attach(paymentMethodId, { customer: stripeCustomerId });
+    } catch (err) {
+      if (!err.message.includes("already been attached")) {
+        throw err;
+      }
+    }
     await stripe.customers.update(stripeCustomerId, {
       invoice_settings: { default_payment_method: paymentMethodId }
     });
@@ -125,11 +136,23 @@ module.exports = {
       where: { id: Number(subscriptionId) },
     });
     if (!sub) throw new Error("Subscription not found");
+    
+    if (sub.accountId !== user.accountId) {
+      throw new Error("Forbidden: Subscription does not belong to your account");
+    }
+    
+    if (!sub.stripeId) {
+      throw new Error("Subscription is not linked to Stripe");
+    }
 
     const newPlan = await prisma.plan.findUnique({
       where: { id: Number(newPlanId) },
     });
     if (!newPlan) throw new Error("New plan not found");
+    
+    if (newPlan.accountId !== user.accountId) {
+      throw new Error("Forbidden: Plan does not belong to your account");
+    }
 
     const newPriceId = await ensureStripePrice(newPlan);
 

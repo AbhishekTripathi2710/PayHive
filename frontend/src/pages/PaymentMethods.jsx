@@ -17,9 +17,6 @@ import {
 
 const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY);
 
-// ----------------------------
-// Add Card Form Component
-// ----------------------------
 function AddCardForm({ onClose, refresh }) {
   const stripe = useStripe();
   const elements = useElements();
@@ -36,14 +33,9 @@ function AddCardForm({ onClose, refresh }) {
 
       const cardElement = elements.getElement(CardElement);
 
-      const { setupIntent, error } = await stripe.confirmCardSetup(
-        clientSecret,
-        {
-          payment_method: {
-            card: cardElement,
-          },
-        }
-      );
+      const { setupIntent, error } = await stripe.confirmCardSetup(clientSecret, {
+        payment_method: { card: cardElement },
+      });
 
       if (error) {
         alert(error.message);
@@ -63,6 +55,7 @@ function AddCardForm({ onClose, refresh }) {
 
     setLoading(false);
   };
+
 
   return (
     <div className="fixed inset-0 bg-black/40 flex items-center justify-center">
@@ -94,9 +87,6 @@ function AddCardForm({ onClose, refresh }) {
   );
 }
 
-// ----------------------------
-// Main Page
-// ----------------------------
 export default function PaymentMethods() {
   const [cards, setCards] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -114,21 +104,10 @@ export default function PaymentMethods() {
     }
   };
 
-  const ensureStripeCustomer = async () => {
-    try {
-      await createStripeCustomer();
-    } catch (_) {
-      // already exists → ignore
-    }
-  };
-
   useEffect(() => {
-    const init = async () => {
-      await ensureStripeCustomer();
-      await fetchCards();
-    };
-    init();
+    fetchCards();
   }, []);
+
 
   return (
     <div className="relative flex min-h-screen bg-[#F3F4F8]">
@@ -183,7 +162,6 @@ export default function PaymentMethods() {
         </div>
       </main>
 
-      {/* Add Card Modal */}
       {showAddCard && (
         <Elements stripe={stripePromise}>
           <AddCardForm

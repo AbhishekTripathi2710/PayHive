@@ -10,3 +10,12 @@ export const pauseSubscription = (id) =>
 
 export const resumeSubscription = (id) =>
   API.post(`/subscription/${id}/resume`);
+
+export const createSubscription = (data) => 
+  API.post("/subscription",data);
+
+export const getPlans = () => 
+  API.get("/plans");
+
+export const getPaymentMethods = () => 
+  API.get("/payment/payment-methods");

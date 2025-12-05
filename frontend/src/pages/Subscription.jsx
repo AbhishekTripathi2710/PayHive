@@ -2,11 +2,16 @@ import { useEffect, useState } from "react";
 import Sidebar from "../components/Sidebar";
 import { getSubscriptions } from "../api/subscription";
 import { useNavigate } from "react-router-dom";
+import { createSubscription } from "../api/subscription";
+import { getPlans } from "../api/plans";
+import { getPaymentMethods } from "../api/paymentMethods";
+
 
 export default function Subscriptions() {
     const [subscriptions, setSubscriptions] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState("");
+    const [showCreateModal, setShowCreateModal] = useState(false);
     const navigate = useNavigate();
 
     useEffect(() => {
@@ -72,10 +77,14 @@ export default function Subscriptions() {
                                 </button>
                             </div>
 
-                            <button className="ml-auto px-4 py-2 bg-primary text-white rounded-full shadow cursor-not-allowed flex items-center gap-2 text-sm font-medium">
+                            <button
+                                onClick={() => setShowCreateModal(true)}
+                                className="ml-auto px-4 py-2 bg-primary text-white rounded-full shadow flex items-center gap-2 text-sm font-medium"
+                            >
                                 <span className="material-symbols-outlined text-sm">add</span>
                                 Add Subscription
                             </button>
+
                         </div>
 
                         <div className="overflow-hidden rounded-card border border-slate-200 bg-white shadow-card">
@@ -168,9 +177,125 @@ export default function Subscriptions() {
                         <div className="flex items-center justify-center mt-6 gap-3 text-sm text-slate-500">
                             Pagination will appear here when server-side paging is added.
                         </div>
+                        {showCreateModal && (
+                            <CreateSubscriptionModal
+                                onClose={() => setShowCreateModal(false)}
+                                refresh={() => window.location.reload()}
+                            />
+                        )}
+
                     </div>
                 </main>
             </div>
         </div>
     );
+
+    function CreateSubscriptionModal({ onClose, refresh }) {
+        const [plans, setPlans] = useState([]);
+        const [cards, setCards] = useState([]);
+        const [loading, setLoading] = useState(false);
+
+        const [form, setForm] = useState({
+            planId: "",
+            paymentMethodId: ""
+        });
+
+        useEffect(() => {
+            const loadData = async () => {
+                try {
+                    const [plansRes, cardsRes] = await Promise.all([
+                        getPlans(),
+                        getPaymentMethods()
+                    ]);
+
+                    setPlans(plansRes.data.data || []);
+                    setCards(cardsRes.data.data || []);
+
+                } catch (err) {
+                    alert("Failed to load data");
+                }
+            };
+            loadData();
+        }, []);
+
+
+        const handleCreate = async () => {
+            if (!form.planId || !form.paymentMethodId) {
+                alert("Please select a plan & payment method.");
+                return;
+            }
+
+            try {
+                setLoading(true);
+
+                await createSubscription({
+                    planId: Number(form.planId),
+                    paymentMethodId: form.paymentMethodId,
+                });
+
+                alert("Subscription created successfully!");
+                refresh();
+                onClose();
+            } catch (err) {
+                alert(err.response?.data?.message || "Failed to create subscription");
+            }
+            setLoading(false);
+        };
+
+        return (
+            <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
+                <div className="bg-white w-96 p-6 rounded-xl shadow-lg">
+                    <h2 className="text-xl font-semibold mb-4">Create Subscription</h2>
+
+                    <label className="block mb-1 text-sm text-slate-600">Plan</label>
+                    <select
+                        className="border p-2 rounded w-full mb-4"
+                        value={form.planId}
+                        onChange={(e) => setForm({ ...form, planId: e.target.value })}
+                    >
+                        <option value="">Select a plan</option>
+                        {plans.map((p) => (
+                            <option key={p.id} value={p.id}>
+                                {p.name} — ₹{p.priceMinor / 100}/{p.billingCycle}
+                            </option>
+                        ))}
+                    </select>
+
+                    <label className="block mb-1 text-sm text-slate-600">
+                        Payment Method
+                    </label>
+                    <select
+                        className="border p-2 rounded w-full mb-4"
+                        value={form.paymentMethodId}
+                        onChange={(e) =>
+                            setForm({ ...form, paymentMethodId: e.target.value })
+                        }
+                    >
+                        <option value="">Select card</option>
+                        {cards.map((c) => (
+                            <option key={c.id} value={c.token}>
+                                {c.brand?.toUpperCase()} •••• {c.last4}
+                            </option>
+                        ))}
+                    </select>
+
+
+
+                    <div className="flex justify-end gap-2">
+                        <button onClick={onClose} className="px-4 py-2 bg-gray-200 rounded">
+                            Cancel
+                        </button>
+                        <button
+                            onClick={handleCreate}
+                            disabled={loading}
+                            className="px-4 py-2 bg-primary text-white rounded"
+                        >
+                            {loading ? "Creating..." : "Create"}
+                        </button>
+                    </div>
+                </div>
+            </div>
+        );
+    }
+
 }

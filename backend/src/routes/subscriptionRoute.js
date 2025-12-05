@@ -34,11 +34,16 @@ router.post("/:id/cancel",auth, async (req,res) => {
 router.post("/:id/change-plan", auth, async (req,res) => {
     try{
         const {id} = req.params;
-        const {newPlanId} = req.body;
+        const {newPlanId, planId} = req.body;
+        const targetPlanId = newPlanId || planId;
+
+        if (!targetPlanId) {
+            return res.status(400).json({message: "Plan ID is required"});
+        }
 
         const result = await subscriptionService.changePlan({
             subscriptionId: id,
-            newPlanId,
+            newPlanId: targetPlanId,
             user: req.user
         });
 

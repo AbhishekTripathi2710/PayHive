@@ -27,6 +27,7 @@ model Account {
 model User {
   id        Int       @id @default(autoincrement())
   accountId Int
+  stripeCustomerId String?
   name      String
   email     String   @unique
   password  String
