@@ -5,6 +5,7 @@ import { useNavigate } from "react-router-dom";
 import { createSubscription } from "../api/subscription";
 import { getPlans } from "../api/plans";
 import { getPaymentMethods } from "../api/paymentMethods";
+import { getWallet } from "../api/wallet";
 
 
 export default function Subscriptions() {
@@ -193,6 +194,7 @@ export default function Subscriptions() {
     function CreateSubscriptionModal({ onClose, refresh }) {
         const [plans, setPlans] = useState([]);
         const [cards, setCards] = useState([]);
+        const [walletBalance, setWalletBalance] = useState(null);
         const [loading, setLoading] = useState(false);
 
         const [form, setForm] = useState({
@@ -203,13 +205,15 @@ export default function Subscriptions() {
         useEffect(() => {
             const loadData = async () => {
                 try {
-                    const [plansRes, cardsRes] = await Promise.all([
+                    const [plansRes, cardsRes, walletRes] = await Promise.all([
                         getPlans(),
-                        getPaymentMethods()
+                        getPaymentMethods(),
+                        getWallet().catch(() => ({ data: { data: null } })) // Don't fail if wallet fails
                     ]);
 
                     setPlans(plansRes.data.data || []);
                     setCards(cardsRes.data.data || []);
+                    setWalletBalance(walletRes.data?.data?.balanceMinor || 0);
 
                 } catch (err) {
                     alert("Failed to load data");
@@ -271,13 +275,33 @@ export default function Subscriptions() {
                             setForm({ ...form, paymentMethodId: e.target.value })
                         }
                     >
-                        <option value="">Select card</option>
+                        <option value="">Select payment method</option>
+                        <option value="wallet">
+                            💳 Pay via Wallet {walletBalance !== null && `(Balance: ₹${(walletBalance / 100).toFixed(2)})`}
+                        </option>
                         {cards.map((c) => (
                             <option key={c.id} value={c.token}>
                                 {c.brand?.toUpperCase()} •••• {c.last4}
                             </option>
                         ))}
                     </select>
+                    
+                    {form.paymentMethodId === "wallet" && form.planId && (() => {
+                        const selectedPlan = plans.find(p => p.id === Number(form.planId));
+                        const planPrice = selectedPlan?.priceMinor || 0;
+                        const hasEnoughBalance = walletBalance >= planPrice;
+                        return (
+                            <div className={`mb-4 p-3 rounded text-sm ${
+                                hasEnoughBalance ? "bg-emerald-50 text-emerald-700" : "bg-red-50 text-red-700"
+                            }`}>
+                                {hasEnoughBalance ? (
+                                    <span>✓ Sufficient balance to pay ₹{(planPrice / 100).toFixed(2)}</span>
+                                ) : (
+                                    <span>✗ Insufficient balance. Need ₹{(planPrice / 100).toFixed(2)}, have ₹{(walletBalance / 100).toFixed(2)}</span>
+                                )}
+                            </div>
+                        );
+                    })()}
 
 
 

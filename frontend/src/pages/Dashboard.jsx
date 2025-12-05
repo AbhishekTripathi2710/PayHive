@@ -1,5 +1,6 @@
 
 import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import Sidebar from "../components/Sidebar";
 import API from "../api/axios";
 
@@ -17,6 +18,7 @@ export default function Dashboard() {
   const [summary, setSummary] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const navigate = useNavigate();
 
   useEffect(() => {
     const fetchSummary = async () => {
@@ -46,6 +48,7 @@ export default function Dashboard() {
         {
           label: "Wallet Balance",
           value: formatMoneyFromMinor(summary.walletBalanceMinor),
+          link: "/wallet",
         },
         {
           label: "Past Due Subscriptions",
@@ -83,7 +86,10 @@ export default function Dashboard() {
               {stats.map((item) => (
                 <div
                   key={item.label}
-                  className="flex flex-col gap-2 rounded-card p-6 bg-white border border-slate-200 shadow-card hover:shadow-lg hover:-translate-y-0.5 transition"
+                  onClick={() => item.link && navigate(item.link)}
+                  className={`flex flex-col gap-2 rounded-card p-6 bg-white border border-slate-200 shadow-card hover:shadow-lg hover:-translate-y-0.5 transition ${
+                    item.link ? "cursor-pointer" : ""
+                  }`}
                 >
                   <p className="text-slate-500 text-xs font-semibold uppercase tracking-wide">
                     {item.label}
@@ -119,7 +125,6 @@ export default function Dashboard() {
                     </div>
                   </div>
 
-                  {/* Chart duration buttons */}
                   <div className="flex items-center gap-2 bg-slate-100 rounded-full p-1 self-start">
                     {["30D", "90D", "1Y", "All"].map((label) => (
                       <button

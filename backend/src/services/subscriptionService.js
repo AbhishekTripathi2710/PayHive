@@ -34,7 +34,66 @@ module.exports = {
     });
     
     if (!dbUser) throw new Error("User not found");
+
     
+    if (paymentMethodId === "wallet") {
+      const walletService = require("./walletService");
+      const wallet = await walletService.getWallet(user.accountId);
+      
+      if (wallet.balanceMinor < plan.priceMinor) {
+        throw new Error(`Insufficient wallet balance. Need ₹${(plan.priceMinor / 100).toFixed(2)}, have ₹${(wallet.balanceMinor / 100).toFixed(2)}`);
+      }
+
+      const created = await prisma.subscription.create({
+        data: {
+          accountId: user.accountId,
+          userId: user.userId,
+          planId: plan.id,
+          status: "active",
+          startDate: new Date(),
+          currentPeriodStart: new Date(),
+          currentPeriodEnd: new Date(Date.now() + (plan.billingCycle?.toUpperCase() === "MONTHLY" ? 30 : 365) * 24 * 60 * 60 * 1000),
+          stripeId: null,
+        },
+      });
+
+      const invoice = await prisma.invoice.create({
+        data: {
+          accountId: user.accountId,
+          subscriptionId: created.id,
+          invoiceNumber: `INV-${Date.now()}`,
+          periodStart: created.currentPeriodStart,
+          periodEnd: created.currentPeriodEnd,
+          currency: plan.currency,
+          status: "paid",
+          amountDueMinor: plan.priceMinor,
+          amountPaidMinor: plan.priceMinor,
+          gatewayInvoiceId: null,
+        }
+      });
+
+      await walletService.debit({
+        accountId: user.accountId,
+        amountMinor: plan.priceMinor,
+        description: `Subscription payment for ${plan.name}`,
+      });
+
+      await prisma.payment.create({
+        data: {
+          accountId: user.accountId,
+          invoiceId: invoice.id,
+          paymentMethodId: null,
+          gateway: "wallet",
+          gatewayPaymentId: `wallet-${Date.now()}`,
+          amountMinor: plan.priceMinor,
+          status: "succeeded",
+          attemptNumber: 1,
+        }
+      });
+
+      return { subscription: null, dbSubscription: created };
+    }
+
     if (!dbUser.stripeCustomerId) {
       throw new Error("Stripe customer not found for this account. Please add a payment method first to create a Stripe customer.");
     }

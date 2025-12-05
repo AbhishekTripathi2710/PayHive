@@ -10,6 +10,7 @@ export default function Sidebar() {
     { icon: "subscriptions", label: "Subscriptions", path: "/subscriptions" },
     { icon: "article", label: "Invoices", path: "/invoices" },
     { icon: "payments", label: "Payments", path: "/payments" },
+    { icon: "account_balance_wallet", label: "Wallet", path: "/wallet" },
   ];
 
   const handleLogout = () => {

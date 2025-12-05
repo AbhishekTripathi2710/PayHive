@@ -6,6 +6,7 @@ const walletService = require("../services/walletService");
 router.get("/me", auth, async (req,res) => {
     try{
         const data = await walletService.getWallet(req.user.accountId);
+        res.json({success: true, data});
     }catch(err){
         res.status(400).json({message: err.message});
     }
