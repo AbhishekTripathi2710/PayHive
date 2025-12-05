@@ -6,7 +6,7 @@ const admin = require("../middlewares/planMiddleware");
 const planController = require("../controllers/planController");
 
 router.post("/",auth,admin,planController.create);
-router.get("/",auth,admin,planController.list);
+router.get("/",auth,planController.list);
 router.put("/:id",auth,admin,planController.update);
 router.delete("/:id",auth,admin,planController.delete);
 

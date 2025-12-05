@@ -12,6 +12,7 @@ import InvoiceDetail from './pages/InvoiceDetail'
 import Payments from './pages/Payment'
 import SubscriptionDetail from './pages/SubscriptionDetail'
 import PaymentMethods from './pages/PaymentMethods'
+import Plans from './pages/Plan'
 
 function Protected({ children }) {
   const token = localStorage.getItem("token");
@@ -61,7 +62,11 @@ function App() {
             </Protected>
           }
         />
+      <Route path='/plans' element={
+        <Protected><Plans></Plans></Protected>
+      }>
 
+      </Route>
 
         <Route path="*" element={<Navigate to="/dashboard" replace />} />
       </Routes>

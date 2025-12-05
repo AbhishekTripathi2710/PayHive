@@ -6,6 +6,7 @@ export default function Sidebar() {
 
   const menuItems = [
     { icon: "space_dashboard", label: "Dashboard", path: "/dashboard" },
+    { icon: "subscriptions", label: "Plans", path: "/plans" },
     { icon: "subscriptions", label: "Subscriptions", path: "/subscriptions" },
     { icon: "article", label: "Invoices", path: "/invoices" },
     { icon: "payments", label: "Payments", path: "/payments" },
